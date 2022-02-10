@@ -4,6 +4,8 @@ const { json } = require('express/lib/response');
 const res = require('express/lib/response');
 const mysql = require('mysql2');
 const inputCheck = require('./utils/inputCheck');
+
+
 const PORT = process.env.PORT || 3001;
 const app = express();
 
@@ -23,9 +25,22 @@ const db = mysql.createConnection({
     console.log('Connected to the election database.')
 );
 
-// db.query(`SELECT * FROM candidates`, (err, rows) => {
-//     console.log(rows);
-// });
+// Get all candidates
+app.get('/api/candidate', (req, res) => {
+    const sql = `SELECT * FROM candidates`;
+
+    db.query(sql, (err, rows) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        res.json({
+            message: 'success',
+            data: rows
+        });
+    });
+});
+
 
 //search for a specific candidate
 app.get('/api/candidates/:id', (req, res) => {
@@ -71,6 +86,17 @@ app.delete('/api/candidate/:id', (req, res) => {
 
 //creates a candidate
 app.post('/api/candidate', ({ body }, res) => {
+    const errors = inputCheck(
+        body,
+        'first_name',
+        'last_name',
+        'industry_connected'
+    );
+    if (errors) {
+        res.status(400).json({ error: errors });
+        return;
+    }
+
     const sql = `INSERT INTO candidates (first_name, last_name, industry_connected)
   VALUES (?,?,?)`;
     const params = [body.first_name, body.last_name, body.industry_connected];
@@ -86,22 +112,6 @@ app.post('/api/candidate', ({ body }, res) => {
             data: body
         });
     })
-});
-
-// show a candidate
-app.get('/api/candidate', (req, res) => {
-    const sql = `SELECT * FROM candidates`;
-
-    db.query(sql, (err, rows) => {
-        if (err) {
-            res.status(500).json({ error: err.message });
-            return;
-        }
-        res.json({
-            message: 'success',
-            data: rows
-        });
-    });
 });
 
 // Default response for any other request (Not Found)
